@@ -13,32 +13,18 @@ IMG_SIZE = 128
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class ImageDataset(Dataset):
-    def __init__(self, image_path, device='cpu', lmdb_path=None, save_lmdb=False, map_size=None, mode="train"):
+    def __init__(self, image_path, device='cpu', lmdb_path=None, save_lmdb=False, mode="train"):
         self.image_path = image_path
         self.data = []
         self.lmdb_path = lmdb_path
         self.mode = mode
-        
-        # Augmentation pipeline
-        self.augmentation = v2.Compose([
-            v2.ToImage(),
-            v2.Resize((IMG_SIZE, IMG_SIZE)),
-            v2.RandomHorizontalFlip(p=0.5),
-            v2.RandomVerticalFlip(p=0.5),
-            v2.RandomRotation(degrees=30),
-            v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-            # v2.RandomResizedCrop(size=(128, 128), scale=(0.8, 1.0)),
-            v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize(mean=[0.5,], std=[0.5,]),
-            v2.Grayscale(num_output_channels=3)
-        ])
-        
+
         # Transform pipeline
         self.transform = v2.Compose([
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
             v2.Resize((IMG_SIZE, IMG_SIZE)),
-            v2.Normalize(mean=[0.5,], std=[0.5,]),
+            v2.Normalize(mean=[0.5], std=[0.5]),
             v2.Grayscale(num_output_channels=3)
         ])
         
@@ -47,27 +33,58 @@ class ImageDataset(Dataset):
         else:
             self.load_data()
 
+    def _estimate_lmdb_size(self):
+        total_size = 0
+        for label in os.listdir(self.image_path):
+            label_path = os.path.join(self.image_path, label)
+            if os.path.isdir(label_path):
+                for img_file in os.listdir(label_path):
+                    img_path = os.path.join(label_path, img_file)
+                    total_size += os.path.getsize(img_path)
+        
+        buffer_factor = 1.5
+        return int(total_size * buffer_factor)
+
     def save_data(self):
+        if not os.path.exists(self.lmdb_path):
+            os.makedirs(self.lmdb_path)
+
         lmdb_file = os.path.join(self.lmdb_path, f'{self.mode}_data.lmdb')
-        env = lmdb.open(lmdb_file, map_size=int(3e9))
-        with env.begin(write=True) as txn:
-            index = 0
-            for idx, label in enumerate(os.listdir(os.path.join(self.image_path))):
-                label_path = os.path.join(self.image_path, label)
-                print(os.path.join(self.image_path, label))
-                for img_file in tqdm(os.listdir(label_path), desc=f"Saving {label}"):
-                    img = cv2.imread(os.path.join(label_path, img_file), cv2.IMREAD_GRAYSCALE)
-                    if self.mode == "train":
-                        img = self.augmentation(img)
-                    elif self.mode == "val" or self.mode == "test":
-                        img = self.transform(img)
-                    
-                    data = (img, idx)
-                    txn.put(f"{index}".encode(), pickle.dumps(data))
-                    index += 1
-                    self.data.append((img, torch.Tensor([idx])))
-        env.close()
-        print(f"Saved {self.mode} dataset")
+        initial_map_size = max(self._estimate_lmdb_size(), int(1e9))
+        print(f"Initial Size: {initial_map_size / (1024**3):.2f} GB")
+
+        while True:
+            try:
+                env = lmdb.open(lmdb_file, map_size=initial_map_size)
+                with env.begin(write=True) as txn:
+                    index = 0
+                    for idx, label in enumerate(os.listdir(self.image_path)):
+                        label_path = os.path.join(self.image_path, label)
+                        if not os.path.isdir(label_path):
+                            continue
+
+                        print(f"Processing {label}...")
+                        for img_file in tqdm(os.listdir(label_path), desc=f"Saving {label}"):
+                            img_path = os.path.join(label_path, img_file)
+                            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+                            if img is None:
+                                print(f"Skipping {img_path} (invalid image)")
+                                continue
+
+                            img = self.transform(img)
+                            data = (img, idx)
+                            txn.put(f"{index}".encode(), pickle.dumps(data))
+                            index += 1
+                            self.data.append((img, torch.Tensor([idx])))
+
+                env.close()
+                print(f"Saved {self.mode} dataset successfully.")
+                break
+
+            except lmdb.MapFullError:
+                print(f"LMDB MapFullError: Expanding map_size from {initial_map_size / (1024**3):.2f} GB")
+                initial_map_size *= 2
 
     def load_data(self):
         lmdb_file = os.path.join(self.lmdb_path, f'{self.mode}_data.lmdb')

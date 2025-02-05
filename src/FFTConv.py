@@ -13,11 +13,6 @@ class FFTConvNet(nn.Module):
         super().__init__()
         self.conv_layer = conv_layer
         self.fft_filter = fft_filter
-
-        # Precomputing kernel FFT
-        # with torch.no_grad():
-        #     self.kernel_fft = fft.rfft2(self.conv_layer.weight, s=(IMG_SIZE, IMG_SIZE))
-        #     self.kernel_fft = fft.fftshift(self.kernel_fft, dim=(-2, -1))
     
     def fft_filter_def(self, fft_x, height, width):
         cht, cwt = height // 2, width // 2
@@ -114,14 +109,29 @@ class FFTAlex(FFTModel):
 
     def create_model(self, net, IMG_SIZE):
         num_features = self._get_ftrs(net, IMG_SIZE)
+        net.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(4, 4), padding=(2, 2)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2)
+        )
         net.classifier = nn.Sequential(
             nn.Dropout(p=0.5),
-            nn.Linear(num_features, out_features=4096),
+            nn.Linear(num_features, out_features=1024),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
-            nn.Linear(in_features=4096, out_features=4096),
+            nn.Linear(in_features=1024, out_features=512),
             nn.LeakyReLU(),
-            nn.Linear(in_features=4096, out_features=3)
+            nn.Linear(in_features=512, out_features=3)
         )
         return net
 
@@ -142,7 +152,7 @@ class FFTGoogle(FFTModel):
 
         self.model = net.to(device)
 
-    def create_model(net):
+    def create_model(self, net):
         net.aux1 = None
         net.aux2 = None
         net.fc = nn.Sequential(
