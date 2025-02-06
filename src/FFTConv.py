@@ -13,6 +13,7 @@ class FFTConvNet(nn.Module):
         super().__init__()
         self.conv_layer = conv_layer
         self.fft_filter = fft_filter
+        self.kernel_fft = None
     
     def fft_filter_def(self, fft_x, height, width):
         cht, cwt = height // 2, width // 2
@@ -43,7 +44,8 @@ class FFTConvNet(nn.Module):
         fft_x = fft.fftshift(fft_x, dim=(-2, -1))
 
         # Comment if precomputing
-        kernel_fft = fft.rfft2(self.conv_layer.weight, s=(height, width))
+        if self.kernel_fft is None or self.kernel_fft.shape[-2:] != (height, width):
+            kernel_fft = fft.rfft2(self.conv_layer.weight, s=(height, width))
 
         if self.fft_filter is not None:
             fft_x = self.fft_filter_def(fft_x, height, width)
@@ -101,38 +103,69 @@ class FFTAlex(FFTModel):
     def __init__(self, apply_fft=False, device="cpu", IMG_SIZE=128):
         super().__init__(device)
         net = models.alexnet(weights=None)
-        net = self.create_model(net, IMG_SIZE)
+        net = self.create_model(net, IMG_SIZE, apply_fft)
         if apply_fft:
             net = self.change_model(net, "features", 3)
 
         self.model = net.to(device)
 
-    def create_model(self, net, IMG_SIZE):
-        num_features = self._get_ftrs(net, IMG_SIZE)
-        net.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(4, 4), padding=(2, 2)),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2)),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(),
-            nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=2)
-        )
-        net.classifier = nn.Sequential(
-            nn.Dropout(p=0.5),
-            nn.Linear(num_features, out_features=1024),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
-            nn.Linear(in_features=1024, out_features=512),
-            nn.LeakyReLU(),
-            nn.Linear(in_features=512, out_features=3)
-        )
+    def create_model(self, net, IMG_SIZE, apply_fft):
+        if apply_fft:
+            net.features = nn.Sequential(
+                nn.Conv2d(3, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2)),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.BatchNorm2d(64),
+                nn.Conv2d(64, 192, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2)),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.BatchNorm2d(192),
+                nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                nn.ReLU(),
+                nn.Conv2d(384, 256, kernel_size=(1, 1), stride=(1, 1), padding=(1, 1)),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), padding=(1, 1)),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.BatchNorm2d(256)
+            )
+            num_features = self._get_ftrs(net, IMG_SIZE)
+            net.classifier = nn.Sequential(
+                    nn.Dropout(p=0.5),
+                    nn.Linear(num_features, out_features=512),
+                    nn.ReLU(),
+                    nn.Dropout(p=0.5),
+                    nn.Linear(in_features=512, out_features=128),
+                    nn.ReLU(),
+                    nn.Linear(in_features=128, out_features=3)
+            )
+        else:
+            net.features = nn.Sequential(
+                nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(4, 4), padding=(2, 2)),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2)),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                nn.ReLU(),
+                nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+            )
+            num_features = self._get_ftrs(net, IMG_SIZE)
+            net.classifier = nn.Sequential(
+                nn.Dropout(p=0.5),
+                nn.Linear(num_features, out_features=4096),
+                nn.ReLU(),
+                nn.Dropout(p=0.5),
+                nn.Linear(in_features=4096, out_features=4096),
+                nn.ReLU(),
+                nn.Linear(in_features=4096, out_features=3)
+            )
+
         return net
 
     def _get_ftrs(self, model, IMG_SIZE):
