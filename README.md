@@ -4,10 +4,10 @@
 This project is an attempt to visualize the prediction of a CNN-based architecutre, AlexNet and Google LeNet (InceptionV1). It uses PyTorch as its main library, and features Gradient-weighted Class Activation Mapping (Grad-CAM) implementation for visualization of output of each of these models.
 
 ## Project Members and Contributors
-Preeti Adhikari (ACE078BCT050)
-Rohan Basnet (ACE078BCT053)
-Sabal Gautam (ACE078BCT054)
-Samir Pokharel (ACE078BCT058)
+- Preeti Adhikari (ACE078BCT050)
+- Rohan Basnet (ACE078BCT053)
+- Sabal Gautam (ACE078BCT054)
+- Samir Pokharel (ACE078BCT058)
 
 ## Project Supervisor
 Er. Laxmi Prasad Bhatt
