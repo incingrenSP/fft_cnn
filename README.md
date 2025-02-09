@@ -1,8 +1,8 @@
 # Comparative Study of Object Detection Models using Fourier Transformation Techniques
-
+---
 ## Introduction
 This project is an attempt to visualize the prediction of a CNN-based architecutre, AlexNet and Google LeNet (InceptionV1). It uses PyTorch as its main library, and features Gradient-weighted Class Activation Mapping (Grad-CAM) implementation for visualization of output of each of these models.
-
+---
 ## Project Members and Contributors
 - Preeti Adhikari (ACE078BCT050)
 - Rohan Basnet (ACE078BCT053)
@@ -10,10 +10,10 @@ This project is an attempt to visualize the prediction of a CNN-based architecut
 - Samir Pokharel (ACE078BCT058)
 
 ## Project Supervisor
-Er. Laxmi Prasad Bhatt
-Acaedemic Project Coordinator
+Er. Laxmi Prasad Bhatt<br>
+Acaedemic Project Coordinator<br>
 Advanced College of Engineering and Management
-
+---
 ## Objective
 - The primary objective of this project is to produce a light-weight system using Fast Fourier Transform based CNN model that can efficiently produce high precision, accuracy, and recall.
 - Secondly, the project also aims to visualize the inflence of a model's prediction through Grad-CAM.
