@@ -19,7 +19,7 @@ Advanced College of Engineering and Management
 - Secondly, the project also aims to visualize the inflence of a model's prediction through Grad-CAM.
 
 ## Dataset
-The project uses RSNA dataset, freely available at their [website][http://rsna.org/rsnai/ai-image-challenge/rsna-pneumonia-detection-challenge-2018]. The dataset includes X-Ray images of lungs that have been devided into three classes: _Bacterial_, _Normal_, _Viral_.
+The project uses RSNA dataset, freely available at their [website](http://rsna.org/rsnai/ai-image-challenge/rsna-pneumonia-detection-challenge-2018). The dataset includes X-Ray images of lungs that have been devided into three classes: _Bacterial_, _Normal_, _Viral_.
 
 The datasets have been preprocessed, augmented and utilized for the purpose of this project.
 
