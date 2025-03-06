@@ -3,4 +3,9 @@ data/
 models/
 lmdb/
 *.jpg
-src/_pycache_
+*.jpeg
+*.png
+*.zip
+src/_pycache_/
+graphs/
+heatmaps/
