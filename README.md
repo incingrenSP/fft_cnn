@@ -23,11 +23,11 @@ The datasets have been preprocessed, augmented and utilized for the purpose of t
 ## Libraries and Development Environment
 The project uses the following libraries:
 
-PyTorch  
-MatPlotLib   
-Sci-kit Learn   
-Seaborn   
-Shutil   
-Lightning Memory-Mapped Database (lmdb)   
-Default Python Libraries   
+- PyTorch  
+- MatPlotLib   
+- Sci-kit Learn   
+- Seaborn   
+- Shutil   
+- Lightning Memory-Mapped Database (lmdb)   
+- Default Python Libraries   
 The system has been developed on Jupyter Notebook with Python 3.10 kernel. It also uses GPU to train the models (if available). The models have been trained on NVIDIA GTX 1050 or higher.
