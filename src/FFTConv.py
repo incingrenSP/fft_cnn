@@ -141,7 +141,7 @@ class FFTAlex(FFTModel):
             )
         else:
             net.features = nn.Sequential(
-                nn.Conv2d(3, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2)),
+                nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)),
                 nn.ReLU(),
                 nn.MaxPool2d(kernel_size=3, stride=2),
                 nn.Conv2d(64, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2)),
@@ -151,7 +151,7 @@ class FFTAlex(FFTModel):
                 nn.ReLU(),
                 nn.Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), padding=(1, 1)),
+                nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
                 nn.ReLU(),
                 nn.MaxPool2d(kernel_size=3, stride=2),
             )
